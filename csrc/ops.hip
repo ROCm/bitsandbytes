@@ -901,7 +901,12 @@ template <typename T> void gemm_4bit_inference(int m, int n, int k, T * A,  unsi
 template <typename T, int BITS> void gemm_4bit_inference_naive(int m, int n, int k, T * A,  unsigned char* B,  float *absmax, float *datatype, T * out,  int lda, int ldb, int ldc, int blocksize)
 {
 
-	int num_blocks = (m+3)/4;
+	//warpsize - 32
+        int num_blocks = (m+3)/4;
+	//warpsize - 64
+	#if __AMDGCN_WAVEFRONT_SIZE == 64
+	  num_blocks = (m+1)/2;
+        #endif
 
   hipLaunchKernelGGL(( kgemm_4bit_inference_naive<T, 128, BITS>), dim3(num_blocks), dim3(128), 0, 0 , m,  n,  k, A,  B, absmax, datatype, out, lda, ldb, ldc, blocksize);
   CUDA_CHECK_RETURN(hipPeekAtLastError());

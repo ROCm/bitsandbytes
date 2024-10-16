@@ -3543,20 +3543,22 @@ template <typename T, int THREADS> __global__ void kgemm_4bit_inference(int M, i
 #endif
 }
 
+#define warp_size __AMDGCN_WAVEFRONT_SIZE
+// No of 4bit values processed by each thread
 #define num_values_4bit 32
 template <typename T, int THREADS, int BITS> __global__ void kgemm_4bit_inference_naive(int M, int N, int K, T * __restrict__ const A, unsigned char *B,  float *absmax, const float *datatype, T * out,  int lda, int ldb, int ldc, int blocksize)
 {
 
   // per threadblock:
-  // load step-by-step in chunks of [32,warps]: 1x32 * [32,warps] -> [1,warps]
+  // load step-by-step in chunks of [warp_size,warps]: 1xwarp_size * [warp_size,warps] -> [1,warps]
   // 4 warps -> 4 loads per iter
-  // 1x32 * 32x4 -> 1x4 outputs per thread block
-  typedef hipcub::WarpReduce<float, 32> WarpReduce;
-  __shared__ typename WarpReduce::TempStorage temp_storage[THREADS/32];
+  // 1xwarp_size * warp_sizex4 -> 1x4 outputs per thread block
+  typedef hipcub::WarpReduce<float, warp_size> WarpReduce;
+  __shared__ typename WarpReduce::TempStorage temp_storage[THREADS/warp_size];
 
-  const int warp_idx = threadIdx.x / 32;
-  const int warp_lane = threadIdx.x % 32;
-  const int row_B = (THREADS/32)*blockIdx.x + warp_idx;
+  const int warp_idx = threadIdx.x / warp_size;
+  const int warp_lane = threadIdx.x % warp_size;
+  const int row_B = (THREADS/warp_size)*blockIdx.x + warp_idx;
   const int num_values_8bit = num_values_4bit/2;
   float local_C = 0.0f;
 
@@ -3571,8 +3573,8 @@ template <typename T, int THREADS, int BITS> __global__ void kgemm_4bit_inferenc
   __syncthreads();
 
   // A: [1, K]
-  // B: [N, K]
-  for(int inner_idx = warp_lane*num_values_4bit; inner_idx < K; inner_idx += 32*num_values_4bit)
+  // B: [M, K]
+  for(int inner_idx = warp_lane*num_values_4bit; inner_idx < K; inner_idx += warp_size*num_values_4bit)
   {
     int inner_idx_halved = inner_idx/2;
     int offset_B = ldb*row_B;
@@ -3608,14 +3610,8 @@ template <typename T, int THREADS, int BITS> __global__ void kgemm_4bit_inferenc
       #pragma unroll
       for(int k = 0; k < num_values_8bit/4; k++)
       {
-        #if __CUDA_ARCH__ >= 800
-          local_B[k*2] = quant_map[local_B_4bit[(i*num_values_8bit/4) + k] >> 4]*local_absmax;
-          local_B[k*2 + 1] = quant_map[local_B_4bit[(i*num_values_8bit/4) + k] & 0x0F]*local_absmax;
-        #else
-          // bf16 multipliation not supported
-          local_B[k*2] = T((float)quant_map[local_B_4bit[(i*num_values_8bit/4) + k] >> 4]*(float)local_absmax);
-          local_B[k*2 + 1] = T((float)quant_map[local_B_4bit[(i*num_values_8bit/4) + k] & 0x0F]*(float)local_absmax);
-        #endif
+        local_B[k*2] = quant_map[local_B_4bit[(i*num_values_8bit/4) + k] >> 4]*local_absmax;
+        local_B[k*2 + 1] = quant_map[local_B_4bit[(i*num_values_8bit/4) + k] & 0x0F]*local_absmax;
       }
 
       if(inner_idx+(num_values_4bit/4) + (i*num_values_4bit/4) < K)
@@ -3645,12 +3641,7 @@ template <typename T, int THREADS, int BITS> __global__ void kgemm_4bit_inferenc
       #pragma unroll
       for(int k = 0; k < num_values_4bit/4; k++)
       {
-        #if __CUDA_ARCH__ >= 800
-          local_C += (float)(local_A[k]*local_B[k]);
-        #else
-          // bf16 multipliation not supported
-          local_C += ((float)local_A[k]*(float)local_B[k]);
-        #endif
+        local_C += (float)(local_A[k]*local_B[k]);
       }
     }
   }
