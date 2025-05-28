@@ -101,17 +101,28 @@ typedef enum Funcs_t
 class Context
 {
     public:
-				rocblas_handle m_handle;
+        hipblasLtHandle_t m_handle;
+				//rocblas_handle m_handle;
 
 				Context()
 				{
-					rocblas_handle handle;
-					rocblas_create_handle(&handle);
+					//rocblas_handle handle;
+					//rocblas_create_handle(&handle);
+          hipblasLtHandle_t handle;
+					hipblasLtCreate(&handle);
 					m_handle = handle;
+
 				}
+
+        ~Context()
+        {
+          hipblasLtDestroy(m_handle);
+         
+        }
 
 };
 
+/*
 class ContextLt
 {
     public:
@@ -124,6 +135,7 @@ class ContextLt
 					m_handle = handle;
 				}
 };
+*/
 
 class ContextHipsparse
 {
