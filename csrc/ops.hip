@@ -658,8 +658,7 @@ template <int FORMATB, int DTYPE_OUT, int SCALE_ROWS> int igemmlt(hipblasLtHandl
         uint64_t workspace_size = 0;
         for(int i = 0; i < returnedAlgoCount; i++)
             workspace_size = max(workspace_size, heuristicResult[i].workspaceSize);
-        hipMalloc(&d_workspace, workspace_size);
-        
+        hipMalloc(&d_workspace, workspace_size);    
         has_error |= checkHipblasStatus(hipblasLtMatmul(ltHandle, matmulDesc,&alpha, A, Adesc, B, Bdesc, &beta, (int32_t*)C, Cdesc, (int32_t*)C, Cdesc, &heuristicResult[0].algo, d_workspace, workspace_size, 0));
         hipFree(d_workspace);
         if(has_error != 0)
@@ -767,8 +766,7 @@ template <int FORMATB, int DTYPE_OUT, int SCALE_ROWS> int igemmlt(hipblasLtHandl
         {
           float beta = 0.0f;
 
-          has_error |= checkHipblasStatus(hipblasLtMatmul(ltHandle, matmulDesc, row_scale, A, Adesc, B, Bdesc, &beta, (int8_t*)C, Cdesc, (int8_t*)C, Cdesc, &heuristicResult[0].algo, nullptr, workspace_size, 0));
-          
+          has_error |= checkHipblasStatus(hipblasLtMatmul(ltHandle, matmulDesc, row_scale, A, Adesc, B, Bdesc, &beta, (int8_t*)C, Cdesc, (int8_t*)C, Cdesc, &heuristicResult[0].algo, nullptr, workspace_size, 0));       
         }
         hipFree(d_workspace);
         if(has_error != 0)

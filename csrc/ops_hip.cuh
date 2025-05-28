@@ -111,15 +111,7 @@ class Context
           hipblasLtHandle_t handle;
 					hipblasLtCreate(&handle);
 					m_handle = handle;
-
 				}
-
-        ~Context()
-        {
-          hipblasLtDestroy(m_handle);
-         
-        }
-
 };
 
 /*
