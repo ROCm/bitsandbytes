@@ -8,16 +8,15 @@ import pytest
 import torch
 
 import bitsandbytes as bnb
-
-from bitsandbytes.cextension import HIP_ENVIRONMENT  
-from tests.helpers import (  
-    TRUE_FALSE,  
-    describe_dtype,  
-    get_available_devices,  
-    id_formatter,  
-    torch_load_from_buffer,  
-    torch_save_to_buffer,  
-) 
+from bitsandbytes.cextension import HIP_ENVIRONMENT
+from tests.helpers import (
+    TRUE_FALSE,
+    describe_dtype,
+    get_available_devices,
+    id_formatter,
+    torch_load_from_buffer,
+    torch_save_to_buffer,
+)
 
 storage = {
     "uint8": torch.uint8,
@@ -25,6 +24,7 @@ storage = {
     "bfloat16": torch.bfloat16,
     "float32": torch.float32,
 }
+
 
 @pytest.mark.parametrize("device", get_available_devices())
 @pytest.mark.parametrize("quant_storage", ["uint8", "float16", "bfloat16", "float32"])

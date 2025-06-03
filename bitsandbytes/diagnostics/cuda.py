@@ -5,8 +5,7 @@ from pathlib import Path
 
 import torch
 
-from bitsandbytes.cextension import HIP_ENVIRONMENT, get_cuda_bnb_library_path  
-from bitsandbytes.consts import NONPYTORCH_DOC_URL  
+from bitsandbytes.cextension import HIP_ENVIRONMENT, get_cuda_bnb_library_path
 from bitsandbytes.cuda_specs import CUDASpecs
 from bitsandbytes.diagnostics.utils import print_dedented
 
@@ -33,11 +32,13 @@ CUDART_PATH_IGNORED_ENVVARS = {
 }
 
 CUDA_RUNTIME_LIB_PATTERNS = (
-    "libamdhip64.so*",
-) if HIP_ENVIRONMENT else (
-    "cudart64*.dll",  # Windows
-    "libcudart*.so*",  # libcudart.so, libcudart.so.11.0, libcudart.so.12.0, libcudart.so.12.1, libcudart.so.12.2 etc.
-    "nvcuda*.dll",  # Windows
+    ("libamdhip64.so*",)
+    if HIP_ENVIRONMENT
+    else (
+        "cudart64*.dll",  # Windows
+        "libcudart*.so*",  # libcudart.so, libcudart.so.11.0, libcudart.so.12.0, libcudart.so.12.1, libcudart.so.12.2 etc.
+        "nvcuda*.dll",  # Windows
+    )
 )
 
 logger = logging.getLogger(__name__)

@@ -11,8 +11,8 @@ from torch import Tensor, device, dtype, nn
 import torch.nn.functional as F
 
 import bitsandbytes as bnb
-from bitsandbytes.cextension import HIP_ENVIRONMENT  
-from bitsandbytes.functional import QuantState, _enable_ipex_fusion, ipex_cpu, ipex_xpu 
+from bitsandbytes.cextension import HIP_ENVIRONMENT
+from bitsandbytes.functional import QuantState, _enable_ipex_fusion, ipex_cpu, ipex_xpu
 from bitsandbytes.optim import GlobalOptimManager
 from bitsandbytes.utils import (
     INVERSE_LINEAR_8BIT_WEIGHTS_FORMAT_MAPPING,
@@ -223,10 +223,10 @@ class Params4bit(torch.nn.Parameter):
     ) -> "Params4bit":
         if data is None:
             data = torch.empty(0)
-            
+
         if blocksize is None:
             blocksize = 64 if not HIP_ENVIRONMENT else 128
-            
+
         self = torch.Tensor._make_subclass(cls, data, requires_grad)
         self.blocksize = blocksize
         self.compress_statistics = compress_statistics

@@ -84,7 +84,7 @@ def get_available_cuda_binary_versions() -> list[str]:
     lib_pattern = f"libbitsandbytes_{BNB_BACKEND.lower()}*{DYNAMIC_LIBRARY_SUFFIX}"
     versions = []
     for lib in Path(__file__).parent.glob(lib_pattern):
-        pattern = r"{}(\d+)".format(BNB_BACKEND.lower())
+        pattern = rf"{BNB_BACKEND.lower()}(\d+)"
         match = re.search(pattern, lib.name)
         if match:
             ver_code = int(match.group(1))
@@ -202,18 +202,16 @@ class ErrorHandlerMockBNBNativeLibrary(BNBNativeLibrary):
         )
 
         compile_instructions = (
-            (
-                "COMPILE FROM SOURCE for CPU-only:\n  `cmake -DCOMPUTE_BACKEND=cpu -S . && make`\n\n"
-            ) if not no_cuda_lib_found 
-            else
-            (
+            ("COMPILE FROM SOURCE for CPU-only:\n  `cmake -DCOMPUTE_BACKEND=cpu -S . && make`\n\n")
+            if not no_cuda_lib_found
+            else (
                 "You have two options:\n"
                 "1. COMPILE FROM SOURCE (required if no binary exists):\n"
                 "   https://huggingface.co/docs/bitsandbytes/main/en/installation#cuda-compile\n"
                 "2. Use BNB_CUDA_VERSION to specify a DIFFERENT CUDA version from the detected one, which is installed on your machine and matching an available pre-compiled version listed above\n\n"
-            ) if not HIP_ENVIRONMENT
-            else
-            (
+            )
+            if not HIP_ENVIRONMENT
+            else (
                 "You can COMPILE FROM SOURCE as mentioned here:\n"
                 "   https://huggingface.co/docs/bitsandbytes/main/en/installation?backend=AMD+ROCm#amd-gpu\n"
             )
@@ -301,27 +299,27 @@ def get_native_library() -> BNBNativeLibrary:
     return BNBNativeLibrary(dll)
 
 
-ROCM_GPU_ARCH = get_rocm_gpu_arch()  
-  
-try:  
-    # to support Intel CPU/GPU (XPU) backend  
-    import intel_extension_for_pytorch as ipex  
-  
-    ipex_cpu = ipex if ipex._C._has_cpu() else None  
-    ipex_xpu = ipex if ipex._C._has_xpu() else None  
-except BaseException:  
-    ipex_cpu = None  
-    ipex_xpu = None  
-  
-try:  
-    if torch.version.hip:  
-        HIP_ENVIRONMENT, BNB_BACKEND = True, "ROCm"  
-    else:  
-        HIP_ENVIRONMENT, BNB_BACKEND = False, "CUDA"  
-  
-    lib = get_native_library()  
-except Exception as e:  
-    error_msg = str(e) 
+ROCM_GPU_ARCH = get_rocm_gpu_arch()
+
+try:
+    # to support Intel CPU/GPU (XPU) backend
+    import intel_extension_for_pytorch as ipex
+
+    ipex_cpu = ipex if ipex._C._has_cpu() else None
+    ipex_xpu = ipex if ipex._C._has_xpu() else None
+except BaseException:
+    ipex_cpu = None
+    ipex_xpu = None
+
+try:
+    if torch.version.hip:
+        HIP_ENVIRONMENT, BNB_BACKEND = True, "ROCm"
+    else:
+        HIP_ENVIRONMENT, BNB_BACKEND = False, "CUDA"
+
+    lib = get_native_library()
+except Exception as e:
+    error_msg = str(e)
     if not (ipex_cpu or ipex_xpu):
         logger.error(
             f"bitsandbytes library load error: {error_msg}\n If you are using Intel CPU/XPU, please install intel_extension_for_pytorch to enable required ops",

@@ -8,8 +8,8 @@ import pytest
 import torch
 
 import bitsandbytes as bnb
-from bitsandbytes.cextension import HIP_ENVIRONMENT, ROCM_GPU_ARCH
 from bitsandbytes import functional as F
+from bitsandbytes.cextension import HIP_ENVIRONMENT, ROCM_GPU_ARCH
 from tests.helpers import (
     BOOLEAN_TUPLES,
     TRUE_FALSE,
@@ -92,7 +92,10 @@ class Test8BitBlockwiseQuantizeFunctional:
     @pytest.mark.parametrize("device", get_available_devices())
     @pytest.mark.parametrize("dtype", [torch.float32, torch.float16, torch.bfloat16], ids=describe_dtype)
     @pytest.mark.parametrize("nested", TRUE_FALSE, ids=id_formatter("nested"))
-    @pytest.mark.parametrize("blocksize", [4096, 2048, 1024, 512, 256, 128, 64] if not HIP_ENVIRONMENT else [4096, 2048, 1024, 512, 256, 128] )
+    @pytest.mark.parametrize(
+        "blocksize",
+        [4096, 2048, 1024, 512, 256, 128, 64] if not HIP_ENVIRONMENT else [4096, 2048, 1024, 512, 256, 128],
+    )
     @pytest.mark.parametrize("signed", TRUE_FALSE, ids=id_formatter("signed"))
     def test_dynamic_blockwise_quantization(self, device, dtype, nested, blocksize, signed):
         iters = 100
@@ -802,6 +805,7 @@ class TestLLMInt8Functional:
                 A[:, outlier_cols] = 0
                 torch.testing.assert_close(A * (idx == 0), A2, rtol=0.05, atol=1.5e-2)
 
+
 @pytest.mark.skipif(HIP_ENVIRONMENT, reason="this test is not supported on ROCm yet")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is required")
 class TestSpMMFunctional:
@@ -1079,7 +1083,10 @@ class TestQuantize4BitFunctional:
     @pytest.mark.parametrize("device", get_available_devices())
     @pytest.mark.parametrize("dtype", [torch.float32, torch.float16, torch.bfloat16], ids=describe_dtype)
     @pytest.mark.parametrize("quant_type", ["fp4", "nf4"])
-    @pytest.mark.parametrize("blocksize", [64, 128, 256, 512, 1024, 2048, 4096] if not HIP_ENVIRONMENT else [128, 256, 512, 1024, 2048, 4096])
+    @pytest.mark.parametrize(
+        "blocksize",
+        [64, 128, 256, 512, 1024, 2048, 4096] if not HIP_ENVIRONMENT else [128, 256, 512, 1024, 2048, 4096],
+    )
     def test_4bit_quant(self, device, dtype, quant_type, blocksize):
         A1 = torch.randn(1024, 1024, device=device, dtype=dtype)
         qa, SA = F.quantize_4bit(A1, blocksize=blocksize, quant_type=quant_type)
@@ -1172,7 +1179,7 @@ class TestQuantize4BitFunctional:
         #    torch.matmul(b, a.t())
         # torch.cuda.synchronize()
         # print((time.time()-t0)/iters*1e6)
-    
+
     @pytest.mark.skipif(
         HIP_ENVIRONMENT, reason="gemv 4bit tests are partially enabled on MI300, others being fixed for warpsize 64"
     )
