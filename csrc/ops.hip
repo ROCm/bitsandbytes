@@ -261,7 +261,11 @@ void gemmex(Context *context, bool transposeA, bool transposeB, int m, int n, in
 					m, n,	k,
 					alpha, A, HIPBLAS_R_8I, lda, B, HIPBLAS_R_8I, ldb, beta,
 					C, HIPBLAS_R_32I, ldc,
+#if HIP_VERSION_MAJOR < 7 && HIP_VERSION_MINOR < 5
           HIPBLAS_R_32I, HIPBLAS_GEMM_DEFAULT);
+#else
+          HIPBLAS_COMPUTE_32I, HIPBLAS_GEMM_DEFAULT);
+#endif
 
     if (status != HIPBLAS_STATUS_SUCCESS)
     {
@@ -291,7 +295,11 @@ void strided_gemmex(Context *context, bool transposeA, bool transposeB, int m, i
 					m, n,	k,
 					alpha, A, HIPBLAS_R_8I, lda, (long long int)strideA, B, HIPBLAS_R_8I, ldb, (long long int)strideB, beta,
 					C, HIPBLAS_R_32I, ldc, (long long int)strideC, batchCount,
+#if HIP_VERSION_MAJOR < 7 && HIP_VERSION_MINOR < 5
           HIPBLAS_R_32I, HIPBLAS_GEMM_DEFAULT);
+#else
+          HIPBLAS_COMPUTE_32I, HIPBLAS_GEMM_DEFAULT);
+#endif
 
     if (status != HIPBLAS_STATUS_SUCCESS)
     {
