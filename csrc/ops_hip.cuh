@@ -100,9 +100,12 @@ class Context
 {
     public:
         hipblasLtHandle_t m_handle; 
+				//rocblas_handle m_handle;
 
 				Context()
 				{
+					//rocblas_handle handle;
+					//rocblas_create_handle(&handle);
 					hipblasLtHandle_t handle;
 					hipblasLtCreate(&handle);
 					m_handle = handle;
