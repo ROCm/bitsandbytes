@@ -113,21 +113,6 @@ class Context
 
 };
 
-/*
-class ContextLt
-{
-    public:
-				hipblasLtHandle_t m_handle;
-
-				ContextLt()
-				{
-					hipblasLtHandle_t handle;
-					hipblasLtCreate(&handle);
-					m_handle = handle;
-				}
-};
-*/
-
 class ContextHipsparse
 {
     public:
