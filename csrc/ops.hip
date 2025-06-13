@@ -583,18 +583,14 @@ template <int DTYPE_OUT, int SCALE_ROWS> int igemmlt(
 
     if (!SCALE_ROWS) {
       float alpha = 1.0f, beta = 0.0f;
-      uint64_t workspace_size = 0;
-      void* d_workspace = nullptr;
-      hipMalloc(&d_workspace, workspace_size);
       has_error |= checkHipblasStatus(hipblasLtMatmul(
         ltHandle, matmulDesc,
         &alpha, A, aDesc,
         B, bDesc, &beta,
         (int8_t*)C, cDesc,
         (int8_t*)C, cDesc,
-        NULL, d_workspace, workspace_size, stream
+        NULL, NULL, 0, stream
       ));
-      hipFree(d_workspace);
       if(has_error != 0)
       {
         std::cout<<"failed to run hipblasLtMatmul with int8"<<std::endl;
@@ -623,18 +619,14 @@ template <int DTYPE_OUT, int SCALE_ROWS> int igemmlt(
         return has_error;
       }
 
-      uint64_t workspace_size = 0;
-      void* d_workspace = nullptr;
-      hipMalloc(&d_workspace, workspace_size);
       has_error |= checkHipblasStatus(hipblasLtMatmul(
         ltHandle, matmulDesc,
         row_scale, A, aDesc,
         B, bDesc, &beta,
         (int8_t*)C, cDesc,
         (int8_t*)C, cDesc,
-        NULL, d_workspace, workspace_size, stream
+        NULL, NULL, 0, stream
       ));
-      hipFree(d_workspace);
       if(has_error != 0)
       {
         std::cout<<"failed to run hipblasLtMatmul with int8"<<std::endl;
