@@ -113,19 +113,20 @@ class Context
 
 };
 
-class ContextHipsparse
+/*
+class ContextLt
 {
     public:
-				hipsparseHandle_t m_handle;
-
-				ContextHipsparse()
+				hipblasLtHandle_t m_handle;
+				ContextLt()
 				{
-					hipsparseHandle_t handle;
-					hipsparseCreate(&handle);
+					hipblasLtHandle_t handle;
+					hipblasLtCreate(&handle);
 					m_handle = handle;
 				}
-
 };
+*/
+
 
 
 template <typename T> void estimateQuantiles(T *A, float *code, float offset, int n);
