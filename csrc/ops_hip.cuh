@@ -99,7 +99,7 @@ typedef enum Funcs_t
 class Context
 {
     public:
-        hipblasLtHandle_t m_handle;
+                                hipblasLtHandle_t m_handle;
 				//rocblas_handle m_handle;
 
 				Context()
