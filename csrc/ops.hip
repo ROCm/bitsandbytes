@@ -476,50 +476,50 @@ template <int DTYPE_OUT, int SCALE_ROWS> int igemmlt(
   hipblasLtPointerMode_t pointerMode = HIPBLASLT_POINTER_MODE_ALPHA_DEVICE_VECTOR_BETA_HOST;
 
   has_error |= checkHipblasStatus(hipblasLtMatrixLayoutCreate(&aDesc, HIP_R_8I, m, k, lda));
-  if(has_error != 0)  
-  {  
-    std::cout<<"failed to run hipblasLtMatrixLayoutCreate for Adesc:"<<m<<" "<<k<<" "<<lda<<std::endl;  
-    return has_error;  
+  if(has_error != 0)
+  {
+    std::cout<<"failed to run hipblasLtMatrixLayoutCreate for Adesc:"<<m<<" "<<k<<" "<<lda<<std::endl;
+    return has_error;
   }
 
   has_error |= checkHipblasStatus(hipblasLtMatrixLayoutCreate(&bDesc, HIP_R_8I, m, n, ldb));
-  if(has_error != 0)  
-  {  
-    std::cout<<"failed to run hipblasLtMatrixLayoutCreate for Bdesc:"<<n<<" "<<k<<" "<<ldb<<std::endl;  
-    hipblasLtMatrixLayoutDestroy(aDesc);  
-    return has_error;  
-  } 
+  if(has_error != 0)
+  {
+    std::cout<<"failed to run hipblasLtMatrixLayoutCreate for Bdesc:"<<n<<" "<<k<<" "<<ldb<<std::endl;
+    hipblasLtMatrixLayoutDestroy(aDesc);
+    return has_error;
+  }
 
   has_error |= checkHipblasStatus(hipblasLtMatrixLayoutCreate(&cDesc, outType, k, n, ldc));
-  if(has_error != 0)  
-  {  
-    std::cout<<"failed to run hipblasLtMatrixLayoutCreate for Cdesc"<<m<<" "<<n<<" "<<ldc<<std::endl;  
-    hipblasLtMatrixLayoutDestroy(aDesc);  
-    hipblasLtMatrixLayoutDestroy(bDesc);  
-    return has_error;  
-  } 
+  if(has_error != 0)
+  {
+    std::cout<<"failed to run hipblasLtMatrixLayoutCreate for Cdesc"<<m<<" "<<n<<" "<<ldc<<std::endl;
+    hipblasLtMatrixLayoutDestroy(aDesc);
+    hipblasLtMatrixLayoutDestroy(bDesc);
+    return has_error;
+  }
 
   // Default layout order is col major
 
   has_error |= checkHipblasStatus(hipblasLtMatmulDescCreate(&matmulDesc, HIPBLAS_COMPUTE_32I, scaleType));
-  if(has_error != 0)  
-  {  
-    std::cout<<"failed to run hipblasLtMatmulDescCreate"<<std::endl;  
-    hipblasLtMatrixLayoutDestroy(aDesc);  
-    hipblasLtMatrixLayoutDestroy(bDesc);  
-    hipblasLtMatrixLayoutDestroy(cDesc);  
-    return has_error;  
+  if(has_error != 0)
+  {
+    std::cout<<"failed to run hipblasLtMatmulDescCreate"<<std::endl;
+    hipblasLtMatrixLayoutDestroy(aDesc);
+    hipblasLtMatrixLayoutDestroy(bDesc);
+    hipblasLtMatrixLayoutDestroy(cDesc);
+    return has_error;
   }
 
   has_error |= checkHipblasStatus(hipblasLtMatmulDescSetAttribute(matmulDesc, HIPBLASLT_MATMUL_DESC_TRANSA, &opT, sizeof(opT)));
-  if(has_error != 0)  
-  {  
-    std::cout<<"failed to run hipblasLtMatmulDescSetAttribute HIPBLASLT_MATMUL_DESC_TRANSA"<<std::endl;  
-    hipblasLtMatrixLayoutDestroy(aDesc);  
-    hipblasLtMatrixLayoutDestroy(bDesc);  
-    hipblasLtMatrixLayoutDestroy(cDesc);  
-    hipblasLtMatmulDescDestroy(matmulDesc);  
-    return has_error;  
+  if(has_error != 0)
+  {
+    std::cout<<"failed to run hipblasLtMatmulDescSetAttribute HIPBLASLT_MATMUL_DESC_TRANSA"<<std::endl;
+    hipblasLtMatrixLayoutDestroy(aDesc);
+    hipblasLtMatrixLayoutDestroy(bDesc);
+    hipblasLtMatrixLayoutDestroy(cDesc);
+    hipblasLtMatmulDescDestroy(matmulDesc);
+    return has_error;
   }
 
   if (DTYPE_OUT == 32) {
@@ -554,56 +554,56 @@ template <int DTYPE_OUT, int SCALE_ROWS> int igemmlt(
         fprintf(stderr, "Error: Matmul Algo Heuristic didn't return algorithms\n");
       } else {
         int alpha = 1, beta = 0;
-        void* d_workspace = nullptr; 
-        uint64_t workspace_size = 0; 
-        for(int i = 0; i < returnedAlgoCount; i++)  
+        void* d_workspace = nullptr;
+        uint64_t workspace_size = 0;
+        for(int i = 0; i < returnedAlgoCount; i++)
             workspace_size = max(workspace_size, heuristicResult[i].workspaceSize);
-        hipMalloc(&d_workspace, workspace_size); 
+        hipMalloc(&d_workspace, workspace_size);
         has_error |= checkHipblasStatus(hipblasLtMatmul(
           ltHandle, matmulDesc,
           &alpha, A, aDesc,
           B, bDesc, &beta,
           (int32_t*)C, cDesc,
           (int32_t*)C, cDesc,
-          &heuristicResult[0].algo, d_workspace, workspace_size, stream 
+          &heuristicResult[0].algo, d_workspace, workspace_size, stream
         ));
         hipFree(d_workspace);
-        if(has_error != 0) 
-        { 
+        if(has_error != 0)
+        {
           std::cout<<"failed to run hipblasLtMatmul"<<std::endl;
-          hipblasLtMatrixLayoutDestroy(aDesc); 
-          hipblasLtMatrixLayoutDestroy(bDesc); 
-          hipblasLtMatrixLayoutDestroy(cDesc);  
-          hipblasLtMatmulDescDestroy(matmulDesc); 
-          return has_error; 
-        }  
+          hipblasLtMatrixLayoutDestroy(aDesc);
+          hipblasLtMatrixLayoutDestroy(bDesc);
+          hipblasLtMatrixLayoutDestroy(cDesc);
+          hipblasLtMatmulDescDestroy(matmulDesc);
+          return has_error;
+        }
       }
   } else {
     // This path is unlikely to be used, as 8-bit accumulation can lead to likely overflows.
 
     if (!SCALE_ROWS) {
       float alpha = 1.0f, beta = 0.0f;
-      uint64_t workspace_size = 0;  
+      uint64_t workspace_size = 0;
       void* d_workspace = nullptr;
-      hipMalloc(&d_workspace, workspace_size); 
+      hipMalloc(&d_workspace, workspace_size);
       has_error |= checkHipblasStatus(hipblasLtMatmul(
         ltHandle, matmulDesc,
         &alpha, A, aDesc,
         B, bDesc, &beta,
         (int8_t*)C, cDesc,
         (int8_t*)C, cDesc,
-        NULL, d_workspace, workspace_size, stream  
+        NULL, d_workspace, workspace_size, stream
       ));
       hipFree(d_workspace);
-      if(has_error != 0) 
-      {  
-        std::cout<<"failed to run hipblasLtMatmul with int8"<<std::endl; 
+      if(has_error != 0)
+      {
+        std::cout<<"failed to run hipblasLtMatmul with int8"<<std::endl;
         hipblasLtMatrixLayoutDestroy(aDesc);
         hipblasLtMatrixLayoutDestroy(bDesc);
         hipblasLtMatrixLayoutDestroy(cDesc);
-        hipblasLtMatmulDescDestroy(matmulDesc); 
+        hipblasLtMatmulDescDestroy(matmulDesc);
         return has_error;
-      } 
+      }
     } else {
       hipblasLtPointerMode_t alphaVec = HIPBLASLT_POINTER_MODE_ALPHA_DEVICE_VECTOR_BETA_HOST;
       float beta = 0.0f;
@@ -613,37 +613,37 @@ template <int DTYPE_OUT, int SCALE_ROWS> int igemmlt(
         &pointerMode,
         sizeof(alphaVec)
       ));
-      if(has_error != 0) 
-      {  
-        std::cout<<"failed to run hipblasLtMatmulDescSetAttribute HIPBLASLT_MATMUL_DESC_POINTER_MODE for int8"<<std::endl; 
+      if(has_error != 0)
+      {
+        std::cout<<"failed to run hipblasLtMatmulDescSetAttribute HIPBLASLT_MATMUL_DESC_POINTER_MODE for int8"<<std::endl;
         hipblasLtMatrixLayoutDestroy(aDesc);
-        hipblasLtMatrixLayoutDestroy(bDesc); 
+        hipblasLtMatrixLayoutDestroy(bDesc);
         hipblasLtMatrixLayoutDestroy(cDesc);
-        hipblasLtMatmulDescDestroy(matmulDesc);  
-        return has_error;  
-      }  
+        hipblasLtMatmulDescDestroy(matmulDesc);
+        return has_error;
+      }
 
-      uint64_t workspace_size = 0;  
-      void* d_workspace = nullptr;  
-      hipMalloc(&d_workspace, workspace_size); 
+      uint64_t workspace_size = 0;
+      void* d_workspace = nullptr;
+      hipMalloc(&d_workspace, workspace_size);
       has_error |= checkHipblasStatus(hipblasLtMatmul(
         ltHandle, matmulDesc,
         row_scale, A, aDesc,
         B, bDesc, &beta,
         (int8_t*)C, cDesc,
         (int8_t*)C, cDesc,
-        NULL, d_workspace, workspace_size, stream 
+        NULL, d_workspace, workspace_size, stream
       ));
-      hipFree(d_workspace);  
-      if(has_error != 0) 
-      { 
-        std::cout<<"failed to run hipblasLtMatmul with int8"<<std::endl;  
-        hipblasLtMatrixLayoutDestroy(aDesc);  
-        hipblasLtMatrixLayoutDestroy(bDesc);  
-        hipblasLtMatrixLayoutDestroy(cDesc); 
-        hipblasLtMatmulDescDestroy(matmulDesc); 
-        return has_error; 
-      }  
+      hipFree(d_workspace);
+      if(has_error != 0)
+      {
+        std::cout<<"failed to run hipblasLtMatmul with int8"<<std::endl;
+        hipblasLtMatrixLayoutDestroy(aDesc);
+        hipblasLtMatrixLayoutDestroy(bDesc);
+        hipblasLtMatrixLayoutDestroy(cDesc);
+        hipblasLtMatmulDescDestroy(matmulDesc);
+        return has_error;
+      }
     }
   }
 
