@@ -560,7 +560,7 @@ template <int DTYPE_OUT, int SCALE_ROWS> int igemmlt(
           B, bDesc, &beta,
           (int32_t*)C, cDesc,
           (int32_t*)C, cDesc,
-          &heuristicResult[0].algo, NULL, 0, stream 
+          &heuristicResult[0].algo, NULL, 0, stream
         ));
         if(has_error != 0)
         {
@@ -619,7 +619,7 @@ template <int DTYPE_OUT, int SCALE_ROWS> int igemmlt(
         B, bDesc, &beta,
         (int8_t*)C, cDesc,
         (int8_t*)C, cDesc,
-        NULL, NULL, 0, stream 
+        NULL, NULL, 0, stream
       ));
       if(has_error != 0)
       {
