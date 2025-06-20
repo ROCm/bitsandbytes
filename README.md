@@ -6,9 +6,9 @@ The `bitsandbytes` library is a lightweight Python wrapper around CUDA custom fu
 
 The library includes quantization primitives for 8-bit & 4-bit operations, through `bitsandbytes.nn.Linear8bitLt` and `bitsandbytes.nn.Linear4bit` and 8-bit optimizers through `bitsandbytes.optim` module.
 
-This fork is actively developed for ROCm and updates are being pushed into `multi-backend-refactor` branch of upstream bitsandbytes. Users can use either of these to run bitsandbytes on AMD GPUs.
+This fork is developed for ROCm and updates are pushed into upstream. Users can use either of these to run bitsandbytes on AMD GPUs.
 
-**Note: The default branch of this fork is switched from `rocm_enabled` to `rocm_enabled_multi_backend`. This is synced periodically with `multi-backend-refactor` branch of upstream, and latest developments are pushed here until upstream branch is merged into `main`.**
+**Note: The default branch of this fork is switched from this branch to the new `rocm_enabled` branch. **
 
 **Installation for ROCm:**
 
@@ -16,8 +16,7 @@ For latest develop version:
 ```bash
 git clone --recurse https://github.com/ROCm/bitsandbytes
 cd bitsandbytes
-git checkout rocm_enabled_multi_backend
-pip install -r requirements-dev.txt
+git checkout rocm_enabled
 cmake -DCOMPUTE_BACKEND=hip -S . #Use -DBNB_ROCM_ARCH="gfx90a;gfx942" to target specific gpu arch
 make
 pip install .
