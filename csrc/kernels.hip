@@ -2109,6 +2109,15 @@ __global__ void kdequant_mm_int32_fp16(
 #define DENORM 1.0f/127.0f
 #define MAX_SPARSE_COUNT 32
 #define SMEM_SIZE 8*256
+// define compile time macro for warp size with ROCm 7
+// Refer: https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_cpp_language_extensions.html#warpsize
+#if (HIP_VERSION_MAJOR >= 7)
+#if defined(__GFX8__) || defined(__GFX9__)
+  #define warpSize 64
+#else
+  #define warpSize 32
+#endif
+#endif
 #define WARP_SIZE warpSize
 template <typename T, int SPMM_ITEMS, int BITS>
 __global__ void kspmm_coo_very_sparse_naive(int *max_count, int *max_idx, int *offset_rowidx, int *rowidx, int *colidx, half *values, T *B, half *out, float * __restrict__ const dequant_stats, int nnz, int rowsA, int rowsB, int colsB)

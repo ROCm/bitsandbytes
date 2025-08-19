@@ -692,9 +692,21 @@ template <typename T, int BITS> void gemm_4bit_inference_naive(int m, int n, int
 	//warpsize - 32
         int num_blocks = (m+3)/4;
 	//warpsize - 64
+
+// define compile time macro for warp size with ROCm 7
+// Refer: https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_cpp_language_extensions.html#warpsize
+
+#if (HIP_VERSION_MAJOR >= 7)
+#if defined(__GFX8__) || defined(__GFX9__)
+  #define warpSize 64
+#else
+  #define warpSize 32
+#endif
+#else
         if (warpSize == 64) {
           num_blocks = (m+1)/2;
         }
+#endif
 
   hipLaunchKernelGGL(( kgemm_4bit_inference_naive<T, 128, BITS>), dim3(num_blocks), dim3(128), 0, stream, m,  n,  k, A,  B, absmax, datatype, out, lda, ldb, ldc, blocksize);
   CUDA_CHECK_RETURN(hipPeekAtLastError());
