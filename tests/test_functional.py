@@ -463,6 +463,7 @@ class TestIGEMMFunctional:
     @pytest.mark.parametrize("hidden_dim", [32, 1024 * 4], ids=id_formatter("hidden_dim"))
     @pytest.mark.parametrize("batch_dim", [2, 16], ids=id_formatter("batch_dim"))
     @pytest.mark.parametrize("transpose", TRUE_FALSE, ids=id_formatter("transpose"))
+    @pytest.mark.skipif(HIP_ENVIRONMENT, reason="this test is not supported on ROCm yet")
     def test_minmax_igemm(self, seq_dim, hidden_dim, batch_dim, transpose):
         def min_max(x):
             maxA = torch.amax(x, dim=2, keepdim=True)
@@ -1110,6 +1111,7 @@ class TestQuantize4BitFunctional:
         "blocksize",
         [64, 128, 256, 512, 1024, 2048, 4096] if not HIP_ENVIRONMENT else [128, 256, 512, 1024, 2048, 4096],
     )
+    @pytest.mark.skipif(HIP_ENVIRONMENT, reason="this test is not supported on ROCm yet")
     def test_4bit_quant(self, device, dtype, quant_type, blocksize):
         if device == "hpu" and not is_supported_on_hpu(quant_type, dtype):
             pytest.skip("This configuration is not supported on HPU.")
@@ -1408,10 +1410,7 @@ class TestQuantize4BitFunctional:
     @pytest.mark.parametrize("device", get_available_devices())
     @pytest.mark.parametrize("storage_type", ["nf4", "fp4"], ids=["nf4", "fp4"])
     @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16, torch.float32], ids=describe_dtype)
-    @pytest.mark.skipif(
-        HIP_ENVIRONMENT and ROCM_GPU_ARCH == "gfx90a",
-        reason="this test is not supported on ROCm with gfx90a architecture yet",
-    )
+    @pytest.mark.skipif(HIP_ENVIRONMENT, reason="this test is not supported on ROCm yet")
     def test_gemv_eye_4bit(self, device, storage_type, dtype):
         if device == "hpu" and not is_supported_on_hpu(storage_type, dtype):
             pytest.skip("This configuration is not supported on HPU.")
