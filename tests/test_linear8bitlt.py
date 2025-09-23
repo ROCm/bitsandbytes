@@ -9,6 +9,7 @@ import pytest
 import torch
 
 import bitsandbytes as bnb
+from bitsandbytes.cextension import HIP_ENVIRONMENT
 from bitsandbytes.nn.modules import Linear8bitLt
 from tests.helpers import (
     TRUE_FALSE,
@@ -17,7 +18,6 @@ from tests.helpers import (
     torch_load_from_buffer,
     torch_save_to_buffer,
 )
-from bitsandbytes.cextension import HIP_ENVIRONMENT
 
 
 # contributed by Alex Borzunov, see:
