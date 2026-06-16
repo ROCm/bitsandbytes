@@ -2853,10 +2853,10 @@ template <int THREADS, int ITEMS_PER_THREAD, int TILE_ROWS, int TILE_COLS, int T
 #define DENORM 1.0f/127.0f
 #define MAX_SPARSE_COUNT 32
 #define SMEM_SIZE 8*256
-#if defined(__GFX9__)
-  #define WARP_SIZE 64
+#ifdef __AMDGCN_WAVEFRONT_SIZE
+  #define WARP_SIZE __AMDGCN_WAVEFRONT_SIZE
 #else
-  #define WARP_SIZE 32
+  #define WARP_SIZE 64
 #endif
 template <typename T, int SPMM_ITEMS, int BITS>
 __global__ void kspmm_coo_very_sparse_naive(int *max_count, int *max_idx, int *offset_rowidx, int *rowidx, int *colidx, half *values, T *B, half *out, float * __restrict__ const dequant_stats, int nnz, int rowsA, int rowsB, int colsB)
