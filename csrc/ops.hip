@@ -20,10 +20,10 @@
 
 #define ERR_NOT_IMPLEMENTED 100
 
-#if defined(__GFX9__)
-  #define WARP_SIZE 64
+#ifdef __AMDGCN_WAVEFRONT_SIZE
+  #define WARP_SIZE __AMDGCN_WAVEFRONT_SIZE
 #else
-  #define WARP_SIZE 32
+  #define WARP_SIZE 64
 #endif
 
 using namespace BinSearch;
