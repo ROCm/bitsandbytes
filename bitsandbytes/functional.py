@@ -517,6 +517,10 @@ def nvidia_transform(
         state = (A.shape, from_order)
     else:
         from_order = state[1]
+
+    if from_order == to_order:
+        return A.clone(), (state[0], to_order)
+
     if out is None:
         out, new_state = get_transform_buffer(state[0], A.dtype, A.device, to_order, state[1], transpose)
     else:
