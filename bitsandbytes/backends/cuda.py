@@ -414,6 +414,7 @@ class CUDABackend(Backend):
         # Transform to "col" format to match hipblasLt output convention.
         # Callers do nvidia_transform(C, "row", state=Sout) to get row-major.
         from bitsandbytes.functional import nvidia_transform
+
         C_col, Sout = nvidia_transform(C, "col", state=(torch.Size(out_shape), "row"))
         return C_col, Sout
 
