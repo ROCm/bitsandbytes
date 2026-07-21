@@ -3,7 +3,7 @@ from typing import Literal, Optional, Tuple
 
 import torch
 
-from bitsandbytes.cextension import HIP_ENVIRONMENT, lib
+from bitsandbytes.cextension import HIP_ENVIRONMENT, ROCM_GPU_ARCH, lib
 from bitsandbytes.functional import (
     CUBLAS_Context,
     coo_zeros,
@@ -251,6 +251,9 @@ class CUDABackend(Backend):
         Sout: Optional[Tuple[torch.Size, str]] = None,
         dtype=torch.int32,
     ):
+        if HIP_ENVIRONMENT and ROCM_GPU_ARCH == "gfx950":
+            return self._igemmlt_fallback(A, B, SA, SB, out, Sout, dtype)
+
         shapeA = SA[0]
         shapeB = SB[0]
         dimsA = len(shapeA)
@@ -362,6 +365,57 @@ class CUDABackend(Backend):
         torch.cuda.set_device(prev_device)
 
         return out, Sout
+
+    def _igemmlt_fallback(
+        self,
+        A: torch.Tensor,
+        B: torch.Tensor,
+        SA: Tuple[torch.Size, str],
+        SB: Tuple[torch.Size, str],
+        out: Optional[torch.Tensor] = None,
+        Sout: Optional[Tuple[torch.Size, str]] = None,
+        dtype=torch.int32,
+    ):
+        """Fallback int8 GEMM using torch.matmul for GPUs where hipblasLt int8 is broken.
+
+        On HIP, the "col" transform stores data in column-major order.
+        Col-major (m,k) has lda=m, so element (i,j) is at offset j*m + i.
+        Reading this flat buffer as row-major (m,k) via reshape gives a
+        transposed view. We reshape to (k,m) to get the correct row-major
+        interpretation, then transpose to recover the original (m,k) matrix.
+        """
+        shapeA = SA[0]
+        shapeB = SB[0]
+        dimsA = len(shapeA)
+
+        k = shapeA[-1]
+        n = shapeB[0]
+
+        if dimsA == 2:
+            m = shapeA[0]
+            out_shape = (m, n)
+        elif dimsA == 3:
+            m = shapeA[0] * shapeA[1]
+            out_shape = (shapeA[0], shapeA[1], n)
+        else:
+            raise ValueError(f"igemmlt: unsupported input dimensions: {dimsA}")
+
+        A_orig = A.reshape(k, m).t().contiguous()
+        B_orig = B.reshape(k, n).t().contiguous()
+        C = torch.matmul(A_orig.float(), B_orig.float().t()).round()
+
+        if dtype == torch.int8:
+            C = C.to(torch.int8)
+        else:
+            C = C.to(torch.int32)
+
+        C = C.reshape(out_shape)
+
+        # Transform to "col" format to match hipblasLt output convention.
+        # Callers do nvidia_transform(C, "row", state=Sout) to get row-major.
+        from bitsandbytes.functional import nvidia_transform
+        C_col, Sout = nvidia_transform(C, "col", state=(torch.Size(out_shape), "row"))
+        return C_col, Sout
 
     def mm_dequant(
         self,
