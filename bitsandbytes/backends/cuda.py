@@ -3,7 +3,7 @@ from typing import Literal, Optional, Tuple
 
 import torch
 
-from bitsandbytes.cextension import HIP_ENVIRONMENT, lib
+from bitsandbytes.cextension import HIP_ENVIRONMENT, ROCM_GPU_ARCH, lib
 from bitsandbytes.functional import (
     CUBLAS_Context,
     coo_zeros,
@@ -251,6 +251,9 @@ class CUDABackend(Backend):
         Sout: Optional[Tuple[torch.Size, str]] = None,
         dtype=torch.int32,
     ):
+        if HIP_ENVIRONMENT and ROCM_GPU_ARCH == "gfx950":
+            return self._igemmlt_fallback(A, B, SA, SB, out, Sout, dtype)
+
         shapeA = SA[0]
         shapeB = SB[0]
         dimsA = len(shapeA)
@@ -362,6 +365,67 @@ class CUDABackend(Backend):
         torch.cuda.set_device(prev_device)
 
         return out, Sout
+
+    def _igemmlt_fallback(
+        self,
+        A: torch.Tensor,
+        B: torch.Tensor,
+        SA: Tuple[torch.Size, str],
+        SB: Tuple[torch.Size, str],
+        out: Optional[torch.Tensor] = None,
+        Sout: Optional[Tuple[torch.Size, str]] = None,
+        dtype=torch.int32,
+    ):
+        """Row-major int8 GEMM via torch._int_mm, bypassing broken hipblasLt col-major path.
+
+        hipblasLt's column-major Int8 GEMM kernel has a tiling bug on gfx950:
+        works for <=64 columns, wrong results for >=128, and OOB writes on
+        large inputs causing unrecoverable GPU faults.
+
+        This recovers the original row-major matrices from the col-major
+        transformed inputs (reshape k,m then transpose), computes via
+        torch._int_mm (row-major, no hipblasLt), then transforms the
+        output back to col format for callers.
+        """
+        shapeA = SA[0]
+        shapeB = SB[0]
+        dimsA = len(shapeA)
+
+        k = shapeA[-1]
+        n = shapeB[0]
+
+        if dimsA == 2:
+            m = shapeA[0]
+            out_shape = (m, n)
+        elif dimsA == 3:
+            m = shapeA[0] * shapeA[1]
+            out_shape = (shapeA[0], shapeA[1], n)
+        else:
+            raise ValueError(f"igemmlt: unsupported input dimensions: {dimsA}")
+
+        A_row = A.reshape(k, m).t().contiguous()
+        B_row = B.reshape(k, n).t().contiguous()
+
+        # torch._int_mm requires K (inner dim) and N (B^T columns) to be multiples of 8
+        pad_k = (8 - k % 8) % 8
+        pad_n = (8 - n % 8) % 8
+        if pad_k:
+            A_row = torch.nn.functional.pad(A_row, (0, pad_k))
+            B_row = torch.nn.functional.pad(B_row, (0, pad_k))
+        if pad_n:
+            B_row = torch.nn.functional.pad(B_row, (0, 0, 0, pad_n))
+
+        C = torch._int_mm(A_row, B_row.t())
+
+        if pad_n:
+            C = C[:, :n]
+
+        if dtype == torch.int8:
+            C = C.to(torch.int8)
+
+        C = C.reshape(out_shape)
+        Sout = (torch.Size(out_shape), "row")
+        return C, Sout
 
     def mm_dequant(
         self,
