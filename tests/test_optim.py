@@ -160,9 +160,11 @@ def test_optimizer32bit(dim1, dim2, gtype, optim_name):
                 rtol=rtol,
             )
 
-        # since Lion can have pretty noisy updates where things lie at the boundary
-        # allow up to 10 errors for Lion
-        assert_most_approx_close(p1, p2.float(), atol=atol, rtol=rtol, max_error_count=10)
+        # Lion uses sgn() which amplifies FMA rounding differences at the
+        # sign boundary; HIP/clang contracts FMA differently from nvcc,
+        # producing more boundary flips on AMD GPUs.
+        lion_max_err = max(10, p1.numel() // 200000)
+        assert_most_approx_close(p1, p2.float(), atol=atol, rtol=rtol, max_error_count=lion_max_err)
 
         if i % (k // 5) == 0 and i > 0:
             path = get_temp_dir()
@@ -172,18 +174,14 @@ def test_optimizer32bit(dim1, dim2, gtype, optim_name):
             bnb_optimizer = str2optimizers[optim_name][1]([p2])
             bnb_optimizer.load_state_dict(torch.load(join(path, "opt.pt")))
             rm_path(path)
-            # since Lion can have pretty noisy updates where things lie at the boundary
-            # allow up to 10 errors for Lion
-            assert_most_approx_close(p1, p2.float(), atol=atol, rtol=rtol, max_error_count=10)
+            assert_most_approx_close(p1, p2.float(), atol=atol, rtol=rtol, max_error_count=lion_max_err)
             for name1, name2 in str2statenames[optim_name]:
-                # since Lion can have pretty noisy updates where things lie at the boundary
-                # allow up to 10 errors for Lion
                 assert_most_approx_close(
                     torch_optimizer.state[p1][name1],
                     bnb_optimizer.state[p2][name2],
                     atol=atol,
                     rtol=rtol,
-                    max_error_count=10,
+                    max_error_count=lion_max_err,
                 )
 
         if gtype != torch.float32:
